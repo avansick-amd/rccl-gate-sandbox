@@ -53,6 +53,7 @@ jobs:
       - uses: actions/checkout@v4
       - name: Gate
         run: |
+          sleep 120
           mode=$(cat gate-mode.txt)
           echo "gate-mode=$mode"
           if [ "$mode" = "fail" ]; then
