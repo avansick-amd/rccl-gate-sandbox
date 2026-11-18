@@ -1,0 +1,61 @@
+name: probe
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print event fields
+        env:
+          CHANGES: ${{ toJSON(github.event.changes) }}
+          ACTION: ${{ github.event.action }}
+          ACTOR: ${{ github.actor }}
+          TRIGGERING_ACTOR: ${{ github.triggering_actor }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_REF: ${{ github.head_ref }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          echo "toJSON(changes)=$CHANGES"
+          echo "action=$ACTION"
+          echo "actor=$ACTOR"
+          echo "triggering_actor=$TRIGGERING_ACTOR"
+          echo "github.sha=$SHA"
+          echo "github.ref=$REF"
+          echo "github.base_ref=$BASE_REF"
+          echo "github.head_ref=$HEAD_REF"
+          echo "pr.base.sha=$PR_BASE_SHA"
+          echo "pr.base.ref=$PR_BASE_REF"
+          echo "pr.head.sha=$PR_HEAD_SHA"
+          echo "---- full event payload ----"
+          cat "$GITHUB_EVENT_PATH"
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Merge commit parents
+        run: git log -1 --format='%H %P'
+
+  gate:
+    name: RCCL PR gate
+    if: ${{ !(github.event.action == 'edited' && !github.event.changes.base) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Gate
+        run: |
+          mode=$(cat gate-mode.txt)
+          echo "gate-mode=$mode"
+          if [ "$mode" = "fail" ]; then
+            echo "gate failing on purpose"
+            exit 1
+          fi
