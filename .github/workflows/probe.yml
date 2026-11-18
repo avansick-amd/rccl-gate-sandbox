@@ -46,14 +46,13 @@ jobs:
         run: git log -1 --format='%H %P'
 
   gate:
-    name: RCCL PR gate
+    name: ${{ (github.event.action == 'edited' && !github.event.changes.base) && 'RCCL PR gate (no-op edit)' || 'RCCL PR gate' }}
     if: ${{ !(github.event.action == 'edited' && !github.event.changes.base) }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Gate
         run: |
-          sleep 120
           mode=$(cat gate-mode.txt)
           echo "gate-mode=$mode"
           if [ "$mode" = "fail" ]; then
